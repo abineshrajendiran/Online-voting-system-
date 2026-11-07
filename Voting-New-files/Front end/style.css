@@ -1,0 +1,114 @@
+/* General Styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: gold;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Main Container */
+.container {
+    background: white;
+    width: 90%;
+    max-width: 450px;
+    padding: 35px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Heading */
+h1 {
+    color:rgb(0, 225, 255);
+    font-size: 27px;
+    margin-bottom: 15px;
+}
+
+h3 {
+    color: #444;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+p {
+    margin: 15px 0;
+    line-height: 1.5;
+}
+
+/* Input and Dropdown */
+input,
+select {
+    width: 100%;
+    padding: 13px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    font-size: 15px;
+    outline: none;
+}
+
+input:focus,
+select:focus {
+    border-color: #2563eb;
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 13px;
+    margin-top: 15px;
+    background-color: violet;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background-color: green;
+}
+
+/* Message */
+#message {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #16803c;
+}
+
+/* Voting Results */
+#results {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    text-align: left;
+    line-height: 2;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+
+    .container {
+        width: 95%;
+        padding: 22px;
+    }
+
+    h1 {
+        font-size: 23px;
+    }
+
+    button {
+        font-size: 14px;
+    }
+}

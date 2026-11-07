@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tamil Nadu Voting System</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+     <style>
+        * {
+            margin: 0px;
+            padding: 0px; 
+            box-sizing: border-box; 
+        }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #ffd700;
+    font-family: Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    padding: 35px;
+    margin: 20px;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+h1 {
+     color: #00d4ff; 
+     text-align: center;
+      margin: 0 0 10px; 
+    }
+h2 {
+     color: #333;
+      font-size: 18px;
+       margin: 20px 0 5px;
+     }
+.sub {
+     text-align: center;
+      color: #333;
+       margin-bottom: 20px;
+     }
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 18px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+input.error { 
+    border-color: #e53935;
+ }
+
+button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background: #ee82ee;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+button:hover {
+     background: #d96ad9; 
+    }
+
+.hidden {
+     display: none;
+     }
+
+#message {
+    display: none;
+    padding: 14px;
+    margin-bottom: 15px;
+     border-radius: 8px;
+      text-align: center;
+     }
+#message.ok  {
+     display: block;
+    background: #e8f5e9;
+     color: #1b5e20; 
+    }
+#message.bad {
+     display: block;
+      background: #ffebee;
+       color: #b71c1c;
+     }
+
+table { 
+    width: 100%; 
+    border-collapse: collapse;
+     margin-top: 10px;
+     }
+th, td {
+     padding: 8px; 
+     border-bottom: 1px solid #eee;
+      text-align: left;
+       font-size: 14px;
+     }
+     </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Tamil Nadu Online Voting</h1>
+
+        <!-- STEP 1: Voter ID -->
+        <div id="stepId">
+            <p class="sub">Enter your Voter ID</p>
+            <input type="text" id="voterId" placeholder="Voter ID (example SYK2121150)" maxlength="10">
+            <button id="continueBtn">Continue</button>
+        </div>
+
+        <!-- STEP 2A: Register (new voter) -->
+        <div id="stepRegister" class="hidden">
+            <p class="sub">New voter. Please register.</p>
+            <input type="text" id="regName" placeholder="Enter your name">
+             <input type="text" id="FatherName" placeholder="Enter your Fathername?">
+              <input type="text" id="MotherName" placeholder="Enter your Mothername">
+               <input type="number" id="AAdhaar" placeholder="Enter your Aadhaar Card Number required">
+               <input type="number" id="Phonenumber" placeholder="Enter your PhoneNumber? pattern[0-9]{10}">
+            <input type="password" id="regPassword" placeholder="Create your password (min 4 characters)">
+            <input type="password" id="regConfirm" placeholder="Confirm your password">
+            <button id="registerBtn">Register</button>
+        </div>
+
+        <!-- STEP 2B: Login (existing voter) -->
+        <div id="stepLogin" class="hidden">
+            <p class="sub">Enter your password</p>
+            <input type="password" id="loginPassword" placeholder="Enter your password">
+            <button id="loginBtn">Login</button>
+        </div>
+
+        <!-- STEP 4: Choose party -->
+        <div id="stepVote" class="hidden">
+            <p class="sub" id="welcome"></p>
+            <select id="party">
+                <option value="">Select Party</option>
+            </select>
+            <button id="voteBtn">Submit Vote</button>
+        </div>
+
+        <div id="message"></div>
+
+        <!-- STEP 5: After voting -->
+        <div id="stepNext" class="hidden">
+            <button id="nextBtn">Next voter</button>
+        </div>
+
+        <button id="resultBtn">View Results</button>
+        <div id="results"></div>
+    </div>
+
+    <script>var voterIdPattern = /^[A-Z]{3}[0-9]{7}$/;
+
+var currentId = "";
+var currentPassword = "";
+
+var voterIdBox = document.getElementById("voterId");
+var messageBox = document.getElementById("message");
+var partyBox = document.getElementById("party");
+
+// ---------- helpers ----------
+function show(id) { document.getElementById(id).classList.remove("hidden"); }
+function hide(id) { document.getElementById(id).classList.add("hidden"); }
+
+function showMessage(text, ok) {
+    messageBox.textContent = text;
+    messageBox.className = ok ? "ok" : "bad";
+}
+
+function clearMessage() {
+    messageBox.textContent = "";
+    messageBox.className = "";
+}
+
+function postData(url, fields) {
+    var data = new URLSearchParams();
+    for (var key in fields) {
+        data.append(key, fields[key]);
+    }
+    return fetch(url, { method: "POST", body: data })
+        .then(function (response) { return response.json(); });
+}
+
+function serverError() {
+    showMessage("Server error. Check Tomcat and MySQL.", false);
+}
+
+// voter ID is changed to capital letters while typing
+voterIdBox.addEventListener("input", function () {
+    voterIdBox.value = voterIdBox.value.toUpperCase();
+    voterIdBox.classList.remove("error");
+});
+
+// ---------- STEP 1: check voter ID ----------
+function continueClick() {
+    clearMessage();
+    currentId = voterIdBox.value.trim().toUpperCase();
+
+    if (!voterIdPattern.test(currentId)) {
+        voterIdBox.classList.add("error");
+        showMessage("Invalid Voter ID. Use 3 capital letters + 7 digits.", false);
+        return;
+    }
+
+    fetch("check?voterId=" + encodeURIComponent(currentId))
+        .then(function (response) { return response.json(); })
+        .then(function (result) {
+            if (!result.valid) {
+                showMessage("Invalid Voter ID. Use 3 capital letters + 7 digits.", false);
+                return;
+            }
+
+            hide("stepId");
+
+            if (result.exists) {
+                show("stepLogin");          // existing voter -> password
+            } else {
+                show("stepRegister");       // new voter -> register
+                showMessage("New voter. Please register.", false);
+            }
+        })
+        .catch(serverError);
+}
+
+// ---------- STEP 2A: register new voter ----------
+function registerClick() {
+    clearMessage();
+
+    var name = document.getElementById("regName").value.trim();
+    var password = document.getElementById("regPassword").value.trim();
+    var confirm = document.getElementById("regConfirm").value.trim();
+
+    if (name === "") {
+        showMessage("Please enter your name.", false);
+        return;
+    }
+    if (password.length < 4) {
+        showMessage("Password must be at least 4 characters.", false);
+        return;
+    }
+    if (password !== confirm) {
+        showMessage("Password and confirm password do not match.", false);
+        return;
+    }
+
+    postData("register", { voterId: currentId, voterName: name, password: password })
+        .then(function (result) {
+            if (!result.ok) {
+                showMessage(result.message, false);
+                return;
+            }
+            currentPassword = password;
+            hide("stepRegister");
+            showMessage("Registered successfully.", true);
+            showVoteStep(name);
+        })
+        .catch(serverError);
+}
+
+// ---------- STEP 2B: login existing voter ----------
+function loginClick() {
+    clearMessage();
+
+    var password = document.getElementById("loginPassword").value.trim();
+
+    if (password === "") {
+        showMessage("Please enter your password.", false);
+        return;
+    }
+
+    postData("login", { voterId: currentId, password: password })
+        .then(function (result) {
+            if (!result.ok) {
+                showMessage(result.message, false);
+                return;
+            }
+
+            currentPassword = password;
+            hide("stepLogin");
+
+            // STEP 3: already voted?
+            if (result.voted) {
+                showMessage("Welcome, " + result.name +
+                    ". You are already voted. One voter can vote only one time.", false);
+                show("stepNext");
+                showResults();
+                return;
+            }
+
+            showVoteStep(result.name);
+        })
+        .catch(serverError);
+}
+
+// ---------- STEP 4: choose party ----------
+function showVoteStep(name) {
+    document.getElementById("welcome").textContent =
+        "Welcome, " + name + ". Select your preferred party.";
+    show("stepVote");
+}
+
+function loadParties() {
+    fetch("parties")
+        .then(function (response) { return response.json(); })
+        .then(function (parties) {
+            for (var i = 0; i < parties.length; i++) {
+                var option = document.createElement("option");
+                option.value = parties[i].id;
+                option.textContent = parties[i].name + " (" + parties[i].code + ")";
+                partyBox.appendChild(option);
+            }
+        })
+        .catch(serverError);
+}
+
+function voteClick() {
+    clearMessage();
+
+    if (partyBox.value === "") {
+        showMessage("Please select a party.", false);
+        return;
+    }
+
+    postData("vote", { voterId: currentId, password: currentPassword, partyId: partyBox.value })
+        .then(function (result) {
+            showMessage(result.message, result.ok);
+
+            if (result.ok) {
+                hide("stepVote");
+                show("stepNext");
+                showResults();
+            }
+        })
+        .catch(serverError);
+}
+
+// ---------- STEP 5: results and voted details ----------
+function showResults() {
+    var html = "";
+
+    fetch("results")
+        .then(function (response) { return response.json(); })
+        .then(function (rows) {
+            html += "<h2>Vote Count</h2>";
+            html += "<table><tr><th>Party</th><th>Code</th><th>Votes</th></tr>";
+            for (var i = 0; i < rows.length; i++) {
+                html += "<tr><td>" + rows[i].name + "</td><td>" +
+                        rows[i].code + "</td><td>" + rows[i].votes + "</td></tr>";
+            }
+            html += "</table>";
+
+            return fetch("voted");
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (voted) {
+            html += "<h2>Voted Details</h2>";
+
+            if (voted.length === 0) {
+                html += "<p>No votes yet.</p>";
+            } else {
+                html += "<table><tr><th>Voter ID</th><th>Name</th><th>Voted For</th></tr>";
+                for (var i = 0; i < voted.length; i++) {
+                    html += "<tr><td>" + voted[i].voterId + "</td><td>" +
+                            voted[i].voterName + "</td><td>" +
+                            voted[i].party + " (" + voted[i].code + ")</td></tr>";
+                }
+                html += "</table>";
+            }
+
+            document.getElementById("results").innerHTML = html;
+        })
+        .catch(serverError);
+}
+
+// ---------- Next voter: go back to step 1 ----------
+function nextClick() {
+    currentId = "";
+    currentPassword = "";
+
+    voterIdBox.value = "";
+    document.getElementById("regName").value = "";
+    document.getElementById("regPassword").value = "";
+    document.getElementById("regConfirm").value = "";
+    document.getElementById("loginPassword").value = "";
+    partyBox.value = "";
+    document.getElementById("results").innerHTML = "";
+
+    clearMessage();
+    hide("stepNext");
+    hide("stepVote");
+    hide("stepLogin");
+    hide("stepRegister");
+    show("stepId");
+}
+
+// ---------- connect buttons ----------
+document.getElementById("continueBtn").addEventListener("click", continueClick);
+document.getElementById("registerBtn").addEventListener("click", registerClick);
+document.getElementById("loginBtn").addEventListener("click", loginClick);
+document.getElementById("voteBtn").addEventListener("click", voteClick);
+document.getElementById("nextBtn").addEventListener("click", nextClick);
+document.getElementById("resultBtn").addEventListener("click", showResults);
+
+loadParties();</script>
+</body>
+</html>
+</body>
+</html>

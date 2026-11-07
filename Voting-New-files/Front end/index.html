@@ -1,0 +1,39 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tamil Nadu Voting System</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Tamil Nadu Online Voting</h1>
+
+    <p>Select your preferred political party</p>
+
+    <input type="number" id="voterId"
+           placeholder="Enter Voter ID">
+
+    <select id="party">
+        <option value="">Select Party</option>
+    </select>
+
+    <button onclick="submitVote()">
+        Submit Vote
+    </button>
+
+    <p id="message"></p>
+
+    <button onclick="showResults()">
+        View Results
+    </button>
+
+    <div id="results"></div>
+
+</div>
+
+<script src="./script.js"></script>
+</body>
+</html>
